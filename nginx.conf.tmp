@@ -6,18 +6,43 @@ events {
   worker_connections  4096;  ## Default: 1024
 }
 
+
 http {
   log_format   main '$remote_addr - $remote_user [$time_local]  $status '
     '"$request" $body_bytes_sent "$http_referer" '
     '"$http_user_agent" "$http_x_forwarded_for"';
+
+  proxy_cache_path  /var/cache/nginx/cache levels=1:2    keys_zone=STATIC:10m
+    inactive=24h  max_size=1g;
+
+  limit_req_zone $binary_remote_addr zone=one:10m rate=30r/m;
+
+  upstream wp {
+    server {{WPIP}};
+  }
 
   server {
     listen          80;
     server_name     ukitazume.co;
     access_log      /var/log/nginx/access.log main;
 
+
     location / {
-      proxy_pass      http://{{WPIP}};
+      proxy_pass      http://wp;
+      proxy_set_header       Host $host;
+      proxy_cache            STATIC;
+      proxy_cache_valid      200  1m;
+      proxy_cache_use_stale  error timeout invalid_header updating
+                             http_500 http_502 http_503 http_504;
+    }
+
+    location /wp-login {
+      limit_req zone=one;
+      proxy_pass      http://wp;
+    }
+
+    location /wp-admin {
+      proxy_pass      http://wp;
     }
   }
 }
