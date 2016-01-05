@@ -1,5 +1,3 @@
-WPIP = $(docker inspect --format '{{ .NetworkSettings.IPAddress }}' wp_wordpress_1)
-WPIP = "test"
 create:
 	docker create -v /var/lib/mysql --name mysqldata alpine:latest /bin/true
 	docker create -v /var/www/html/wp-content --name wpdata alpine:latest /bin/true
